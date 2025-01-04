@@ -106,7 +106,7 @@ if (!isset($_SESSION['username'])) {
     <!-- nav begin -->
     <nav class="navbar navbar-expand-sm bg-body-tertiary sticky-top bg-primary-subtle">
         <div class="container">
-            <a class="navbar-brand" target="_blank" href=".">My Daily Journal</a>
+            <a class="navbar-brand" target="_blank" href=".">Welcome To My Daily Journal</a>
             <button
                 class="navbar-toggler"
                 type="button"
