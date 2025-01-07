@@ -86,24 +86,32 @@
 
     //jika tombol simpan diklik
     if (isset($_POST['simpan'])) {
+        $id = $_POST['id'];
         $judul = $_POST['judul'];
         $tanggal = date("Y-m-d H:i:s");
         $username = $_SESSION['username'];
-        $gambar = '';
-        $nama_gambar = $_FILES['gambar']['name'];
-
-        //jika ada file yang dikirim  
-        if ($nama_gambar != '') {
-            //panggil function upload_foto untuk cek spesifikasi file yg dikirimkan user
-            //function ini memiliki 2 keluaran yaitu status dan message
+    
+        // Validasi input judul
+        if (empty($judul)) {
+            echo "<script>
+                alert('Judul tidak boleh kosong!');
+                document.location='admin.php?page=gallery';
+            </script>";
+            die;
+        }
+    
+        // Proses gambar baru jika ada
+        $gambar = $_POST['gambar_lama']; // Default gunakan gambar lama
+        if (!empty($_FILES['gambar']['name'])) {
             $cek_upload = upload_foto($_FILES["gambar"]);
-
-            //cek status true/false
+    
             if ($cek_upload['status']) {
-                //jika true maka message berisi nama file gambar
                 $gambar = $cek_upload['message'];
+                // Hapus gambar lama jika ada
+                if (!empty($_POST['gambar_lama']) && file_exists('img/' . $_POST['gambar_lama'])) {
+                    unlink('img/' . $_POST['gambar_lama']);
+                }
             } else {
-                //jika true maka message berisi pesan error, tampilkan dalam alert
                 echo "<script>
                     alert('" . $cek_upload['message'] . "');
                     document.location='admin.php?page=gallery';
@@ -111,54 +119,27 @@
                 die;
             }
         }
-
-        //cek apakah ada id yang dikirimkan dari form
-        if (isset($_POST['id'])) {
-            //jika ada id,    lakukan update data dengan id tersebut
-            $id = $_POST['id'];
-
-            if ($nama_gambar == '') {
-                //jika tidak ganti gambar
-                $gambar = $_POST['gambar_lama'];
-            } else {
-                //jika ganti gambar, hapus gambar lama
-                unlink("img/" . $_POST['gambar_lama']);
-            }
-
-            $stmt = $conn->prepare("UPDATE gallery
-                                    SET 
-                                    judul =?,
-                                    gambar = ?,
-                                    tanggal = ?,
-                                    username = ?
-                                    WHERE id = ?");
-
-            $stmt->bind_param("ssssi", $judul, $gambar, $tanggal, $username, $id);
-            $simpan = $stmt->execute();
-        } else {
-            //jika tidak ada id, lakukan insert data baru
-            $stmt = $conn->prepare("INSERT INTO gallery (judul,gambar,tanggal,username)
-                                    VALUES (?,?,?,?)");
-
-            $stmt->bind_param("ssss", $judul, $gambar, $tanggal, $username);
-            $simpan = $stmt->execute();
-        }
-
+    
+        // Update data ke database
+        $stmt = $conn->prepare("UPDATE gallery SET judul = ?, gambar = ?, tanggal = ?, username = ? WHERE id = ?");
+        $stmt->bind_param("ssssi", $judul, $gambar, $tanggal, $username, $id);
+        $simpan = $stmt->execute();
+    
         if ($simpan) {
             echo "<script>
-                alert('Simpan data sukses');
+                alert('Data berhasil diperbarui');
                 document.location='admin.php?page=gallery';
             </script>";
         } else {
             echo "<script>
-                alert('Simpan data gagal');
+                alert('Data gagal diperbarui');
                 document.location='admin.php?page=gallery';
             </script>";
         }
-
         $stmt->close();
         $conn->close();
     }
+    
 
     //jika tombol hapus diklik
     if (isset($_POST['hapus'])) {
