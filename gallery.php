@@ -84,62 +84,107 @@
     <?php
     include "upload_foto.php";
 
-    //jika tombol simpan diklik
+    // Jika tombol simpan diklik
     if (isset($_POST['simpan'])) {
-        $id = $_POST['id'];
         $judul = $_POST['judul'];
         $tanggal = date("Y-m-d H:i:s");
         $username = $_SESSION['username'];
-    
+
         // Validasi input judul
         if (empty($judul)) {
             echo "<script>
-                alert('Judul tidak boleh kosong!');
-                document.location='admin.php?page=gallery';
-            </script>";
+            alert('Judul tidak boleh kosong!');
+            document.location='admin.php?page=gallery';
+        </script>";
             die;
         }
-    
-        // Proses gambar baru jika ada
-        $gambar = $_POST['gambar_lama']; // Default gunakan gambar lama
+
+        // Proses upload gambar
+        $gambar = ''; // Default kosong
         if (!empty($_FILES['gambar']['name'])) {
             $cek_upload = upload_foto($_FILES["gambar"]);
-    
+
             if ($cek_upload['status']) {
                 $gambar = $cek_upload['message'];
-                // Hapus gambar lama jika ada
-                if (!empty($_POST['gambar_lama']) && file_exists('img/' . $_POST['gambar_lama'])) {
-                    unlink('img/' . $_POST['gambar_lama']);
-                }
             } else {
                 echo "<script>
-                    alert('" . $cek_upload['message'] . "');
-                    document.location='admin.php?page=gallery';
-                </script>";
+                alert('" . $cek_upload['message'] . "');
+                document.location='admin.php?page=gallery';
+            </script>";
                 die;
             }
         }
-    
-        // Update data ke database
-        $stmt = $conn->prepare("UPDATE gallery SET judul = ?, gambar = ?, tanggal = ?, username = ? WHERE id = ?");
-        $stmt->bind_param("ssssi", $judul, $gambar, $tanggal, $username, $id);
+
+        // Simpan data baru ke database
+        $stmt = $conn->prepare("INSERT INTO gallery (judul, gambar, tanggal, username) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssss", $judul, $gambar, $tanggal, $username);
         $simpan = $stmt->execute();
-    
+
         if ($simpan) {
             echo "<script>
-                alert('Data berhasil diperbarui');
-                document.location='admin.php?page=gallery';
-            </script>";
+            alert('Gallery berhasil ditambahkan');
+            document.location='admin.php?page=gallery';
+        </script>";
         } else {
             echo "<script>
-                alert('Data gagal diperbarui');
-                document.location='admin.php?page=gallery';
-            </script>";
+            alert('Gallery gagal ditambahkan');
+            document.location='admin.php?page=gallery';
+        </script>";
         }
+
         $stmt->close();
         $conn->close();
     }
-    
+
+    // Proses edit data
+    if (isset($_POST['edit'])) {
+        $id = $_POST['id'];
+        $judul = $_POST['judul'];
+        $gambar_lama = $_POST['gambar_lama'];
+
+        // Proses upload gambar baru jika ada
+        $gambar = $gambar_lama; // Tetap gunakan gambar lama jika tidak ada gambar baru
+        if (!empty($_FILES['gambar']['name'])) {
+            $cek_upload = upload_foto($_FILES["gambar"]);
+
+            if ($cek_upload['status']) {
+                // Hapus gambar lama
+                if (file_exists('img/' . $gambar_lama)) {
+                    unlink('img/' . $gambar_lama);
+                }
+
+                // Gunakan gambar baru
+                $gambar = $cek_upload['message'];
+            } else {
+                echo "<script>
+                alert('" . $cek_upload['message'] . "');
+                document.location='admin.php?page=gallery';
+            </script>";
+                die;
+            }
+        }
+
+        // Update data gallery
+        $stmt = $conn->prepare("UPDATE gallery SET judul = ?, gambar = ? WHERE id = ?");
+        $stmt->bind_param("ssi", $judul, $gambar, $id);
+        $edit = $stmt->execute();
+
+        if ($edit) {
+            echo "<script>
+            alert('Gallery berhasil diperbarui');
+            document.location='admin.php?page=gallery';
+        </script>";
+        } else {
+            echo "<script>
+            alert('Gallery gagal diperbarui');
+            document.location='admin.php?page=gallery';
+        </script>";
+        }
+
+        $stmt->close();
+        $conn->close();
+    }
+
 
     //jika tombol hapus diklik
     if (isset($_POST['hapus'])) {
